@@ -1,0 +1,166 @@
+{
+    "name": "Robust Google Sheets to Email",
+    "nodes": [
+        {
+            "parameters": {
+                "pollTimes": {
+                    "item": [
+                        {
+                            "mode": "everyMinute"
+                        }
+                    ]
+                },
+                "authentication": "googleCoauthId",
+                "documentId": {
+                    "__rl": true,
+                    "mode": "fromEntity",
+                    "value": "",
+                    "label": "Select Sheet..."
+                },
+                "sheetName": {
+                    "__rl": true,
+                    "mode": "fromEntity",
+                    "value": "",
+                    "label": "Select Sheet..."
+                },
+                "event": "rowAdded"
+            },
+            "id": "trigger-node-id",
+            "name": "Google Sheets Trigger",
+            "type": "n8n-nodes-base.googleSheetsTrigger",
+            "typeVersion": 1,
+            "position": [
+                460,
+                300
+            ],
+            "credentials": {
+                "googleSheetsTriggerOAuth2Api": {
+                    "id": "YOUR_CREDENTIAL_ID",
+                    "name": "Google Sheets Account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{Object.keys($json).length > 0}}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "id": "validation-node-id",
+            "name": "Validate Data",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "fromEmail": "notifications@example.com",
+                "toEmail": "recipient@example.com",
+                "subject": "New Row Added in Google Sheets",
+                "text": "A new row has been added to your Google Sheet. Please enable HTML emails to view details.",
+                "html": "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e1e4e8; border-radius: 8px; background-color: #ffffff;\">\n  <h2 style=\"color: #333; margin-top: 0;\">New Entry Detected</h2>\n  <p style=\"color: #666; font-size: 16px;\">A new row has been added to your Google Sheet.</p>\n  <table style=\"width: 100%; border-collapse: collapse; margin-top: 20px;\">\n    <thead>\n      <tr style=\"background-color: #f6f8fa; text-align: left;\">\n        <th style=\"padding: 10px; border-bottom: 1px solid #e1e4e8; color: #333;\">Field</th>\n        <th style=\"padding: 10px; border-bottom: 1px solid #e1e4e8; color: #333;\">Value</th>\n      </tr>\n    </thead>\n    <tbody>\n      {{ Object.keys($json).map(key => `<tr><td style=\"padding: 10px; border-bottom: 1px solid #e1e4e8; font-weight: 600; color: #333;\">${key}</td><td style=\"padding: 10px; border-bottom: 1px solid #e1e4e8; color: #555;\">${$json[key]}</td></tr>`).join('') }}\n    </tbody>\n  </table>\n  <p style=\"color: #999; font-size: 12px; margin-top: 30px; text-align: center;\">Automated Notification via n8n</p>\n</div>",
+                "options": {
+                    "allowUnauthorizedCerts": true
+                }
+            },
+            "id": "email-node-id",
+            "name": "Send Email",
+            "type": "n8n-nodes-base.email",
+            "typeVersion": 2,
+            "position": [
+                900,
+                300
+            ],
+            "retryOnFail": true,
+            "maxTries": 3,
+            "waitBetweenTries": 5000,
+            "credentials": {
+                "smtp": {
+                    "id": "YOUR_SMTP_CREDENTIAL_ID",
+                    "name": "SMTP Account"
+                }
+            }
+        },
+        {
+            "parameters": {},
+            "id": "error-trigger-id",
+            "name": "Error Trigger",
+            "type": "n8n-nodes-base.errorTrigger",
+            "typeVersion": 1,
+            "position": [
+                460,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "fromEmail": "alerts@example.com",
+                "toEmail": "admin@example.com",
+                "subject": "Workflow Error Notification",
+                "text": "The Google Sheets to Email workflow encountered an error:\n\n{{$json.message}}\n\nWorkflow ID: {{$workflow.id}}\nExecution ID: {{$execution.id}}"
+            },
+            "id": "error-notification-id",
+            "name": "Send Error Email",
+            "type": "n8n-nodes-base.email",
+            "typeVersion": 2,
+            "position": [
+                680,
+                500
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "YOUR_SMTP_CREDENTIAL_ID",
+                    "name": "SMTP Account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Google Sheets Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Validate Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Validate Data": {
+            "main": [
+                [
+                    {
+                        "node": "Send Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Error Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Send Error Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "pinData": {}
+}
